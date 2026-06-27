@@ -3,7 +3,7 @@
   "displayName": "Legacy JavaScript Toolkit",
   "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, WebJar indexing, and jsconfig.json assistance.",
   "version": "0.0.1",
-  "publisher": "local-tools",
+  "publisher": "BucketHsu",
   "license": "MIT",
   "icon": "images/icon.png",
   "engines": {

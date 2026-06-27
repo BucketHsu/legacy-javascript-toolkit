@@ -1,0 +1,139 @@
+{
+  "name": "legacy-javascript-toolkit",
+  "displayName": "Legacy JavaScript Toolkit",
+  "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, WebJar indexing, and jsconfig.json assistance.",
+  "version": "0.0.1",
+  "publisher": "local-tools",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "javascript",
+    "java web",
+    "jsp",
+    "spring boot",
+    "webjar",
+    "html template literal",
+    "navigation"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact",
+    "onLanguage:html",
+    "onLanguage:jsp",
+    "onCommand:legacyJavaScriptToolkit.createJsconfig",
+    "onCommand:legacyJavaScriptToolkit.resetJsconfigPrompt",
+    "onCommand:legacyJavaScriptToolkit.rebuildIndex",
+    "onCommand:legacyJavaScriptToolkit.showIndexStatus"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node test/indexer.test.js",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^22.15.3",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.3.2"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "legacyJavaScriptToolkit.createJsconfig",
+        "title": "Legacy JavaScript Toolkit: Create jsconfig.json"
+      },
+      {
+        "command": "legacyJavaScriptToolkit.resetJsconfigPrompt",
+        "title": "Legacy JavaScript Toolkit: Reset jsconfig.json Prompt"
+      },
+      {
+        "command": "legacyJavaScriptToolkit.rebuildIndex",
+        "title": "Legacy JavaScript Toolkit: Rebuild JavaScript Index"
+      },
+      {
+        "command": "legacyJavaScriptToolkit.showIndexStatus",
+        "title": "Legacy JavaScript Toolkit: Show JavaScript Index Status"
+      }
+    ],
+    "grammars": [
+      {
+        "scopeName": "inline.legacy-javascript-html",
+        "path": "./syntaxes/javascript-inline-html.injection.json",
+        "injectTo": [
+          "source.js",
+          "source.jsx",
+          "source.ts",
+          "source.tsx"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Legacy JavaScript Toolkit",
+      "properties": {
+        "legacyJavaScriptToolkit.enableInlineHtmlHighlight": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline HTML syntax highlighting in JavaScript and TypeScript template literals. Reload the window after changing this setting."
+        },
+        "legacyJavaScriptToolkit.enableNavigation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable legacy JavaScript function navigation."
+        },
+        "legacyJavaScriptToolkit.promptCreateJsconfig": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prompt to create jsconfig.json when opening a Java Web project without one."
+        },
+        "legacyJavaScriptToolkit.includeWebjars": {
+          "type": "boolean",
+          "default": true,
+          "description": "Try to index JavaScript files from Maven WebJar dependencies."
+        },
+        "legacyJavaScriptToolkit.maxFilesToIndex": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 100,
+          "description": "Maximum number of JavaScript files to index."
+        },
+        "legacyJavaScriptToolkit.excludeGlobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/target/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.git/**",
+            "**/.idea/**",
+            "**/.vscode/**",
+            "**/coverage/**"
+          ],
+          "description": "Glob patterns excluded from JavaScript indexing."
+        }
+      }
+    }
+  }
+}

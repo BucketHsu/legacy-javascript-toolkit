@@ -78,16 +78,25 @@ export class ScriptReferenceScanner {
       20
     );
     reference.resolvedUri = selectBestMatch(matches, documentUri, suffix);
+    if (!reference.resolvedUri) reference.webjarPath = suffix;
     return reference;
   }
 }
 
 export function extractScriptSources(text: string): string[] {
   const sources: string[] = [];
-  const scriptPattern = /<script\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1[^>]*>/gi;
+  const scriptPattern = /<script\b([^>]*)>/gi;
   let match: RegExpExecArray | null;
   while ((match = scriptPattern.exec(text)) !== null) {
-    sources.push(match[2].trim());
+    const attributes = match[1];
+    const nativeSource = /(?:^|\s)src\s*=\s*(["'])(.*?)\1/i.exec(attributes)?.[2]?.trim();
+    const thymeleafSource = /(?:^|\s)th:src\s*=\s*(["'])(.*?)\1/i.exec(attributes)?.[2]?.trim();
+    const staticSource = thymeleafSource && /^@\{([^${}]+)}$/.exec(thymeleafSource)?.[1];
+    if (staticSource) {
+      sources.push(staticSource);
+    } else if (nativeSource) {
+      sources.push(nativeSource);
+    }
   }
   return sources;
 }

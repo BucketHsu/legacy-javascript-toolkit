@@ -1,12 +1,25 @@
 import * as fs from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import AdmZip from "adm-zip";
 import * as vscode from "vscode";
+import { MavenArtifact, MavenDependencyResolver } from "./mavenDependencyResolver";
 
-const TARGET_WEBJAR_GLOB = "**/target/classes/META-INF/resources/webjars/**/*.js";
+const TARGET_RESOURCE_GLOBS = [
+  "**/target/classes/META-INF/resources/**/*.js",
+  "**/target/classes/static/**/*.js",
+  "**/target/classes/public/**/*.js",
+  "**/target/classes/resources/**/*.js"
+];
 const TARGET_EXCLUDE = "{**/node_modules/**,**/dist/**,**/build/**,**/.git/**}";
 const MAX_WEBJAR_FILE_SIZE = 2 * 1024 * 1024;
+const MAX_DEPENDENCY_JAR_SIZE = 100 * 1024 * 1024;
+const RESOURCE_ROOTS = [
+  "META-INF/resources/webjars/",
+  "META-INF/resources/",
+  "static/",
+  "public/",
+  "resources/"
+];
 
 export interface WebjarFile {
   uri: vscode.Uri;
@@ -20,29 +33,32 @@ interface WebjarDependency {
 }
 
 export class WebjarScanner {
+  private readonly mavenResolver: MavenDependencyResolver;
+
   public constructor(
     private readonly cacheRoot: vscode.Uri,
     private readonly output: vscode.OutputChannel
-  ) {}
+  ) {
+    this.mavenResolver = new MavenDependencyResolver(output);
+  }
 
-  public async scan(maxFiles: number): Promise<WebjarFile[]> {
+  public async scan(maxFiles: number, requestedPaths: ReadonlySet<string> = new Set()): Promise<WebjarFile[]> {
     const files = new Map<string, WebjarFile>();
     await this.scanTargetOutput(files, maxFiles);
     if (files.size >= maxFiles) {
       return [...files.values()];
     }
 
-    const dependencies = await this.findDependencies();
-    const repository = process.env.M2_REPO || path.join(os.homedir(), ".m2", "repository");
-    for (const dependency of dependencies) {
+    const { artifacts } = await this.mavenResolver.resolveWorkspaceArtifacts();
+    for (const artifact of artifacts) {
       if (files.size >= maxFiles) {
         break;
       }
       try {
-        await this.scanDependency(repository, dependency, files, maxFiles);
+        await this.scanArtifact(artifact, files, maxFiles, requestedPaths);
       } catch (error) {
         this.output.appendLine(
-          `警告：無法掃描 WebJar ${dependency.groupId}:${dependency.artifactId}:${dependency.version}（${messageOf(error)}）`
+          `警告：無法掃描 Maven dependency ${artifact.groupId}:${artifact.artifactId}:${artifact.version}（${messageOf(error)}）`
         );
       }
     }
@@ -51,114 +67,90 @@ export class WebjarScanner {
 
   private async scanTargetOutput(files: Map<string, WebjarFile>, maxFiles: number): Promise<void> {
     for (const folder of vscode.workspace.workspaceFolders ?? []) {
-      const matches = await vscode.workspace.findFiles(
-        new vscode.RelativePattern(folder, TARGET_WEBJAR_GLOB),
-        TARGET_EXCLUDE,
-        maxFiles - files.size
-      );
-      for (const uri of matches) {
-        const webjarPath = toWebjarPath(uri.path);
-        files.set(uri.toString(), { uri, webjarPath });
-      }
-    }
-  }
-
-  private async findDependencies(): Promise<WebjarDependency[]> {
-    const result = new Map<string, WebjarDependency>();
-    for (const folder of vscode.workspace.workspaceFolders ?? []) {
-      const poms = await vscode.workspace.findFiles(
-        new vscode.RelativePattern(folder, "**/pom.xml"),
-        "{**/target/**,**/node_modules/**,**/.git/**}",
-        300
-      );
-      for (const pom of poms) {
-        try {
-          const xml = Buffer.from(await vscode.workspace.fs.readFile(pom)).toString("utf8");
-          for (const dependency of parseWebjarDependencies(xml)) {
-            result.set(`${dependency.groupId}:${dependency.artifactId}:${dependency.version}`, dependency);
-          }
-        } catch (error) {
-          this.output.appendLine(`警告：無法解析 ${pom.fsPath} 的 WebJar dependency（${messageOf(error)}）`);
+      for (const glob of TARGET_RESOURCE_GLOBS) {
+        const matches = await vscode.workspace.findFiles(
+          new vscode.RelativePattern(folder, glob),
+          TARGET_EXCLUDE,
+          maxFiles - files.size
+        );
+        for (const uri of matches) {
+          const webjarPath = toPublicResourcePath(uri.path);
+          files.set(uri.toString(), { uri, webjarPath });
         }
+        if (files.size >= maxFiles) return;
       }
     }
-    return [...result.values()];
   }
 
-  private async scanDependency(
-    repository: string,
-    dependency: WebjarDependency,
+  private async scanArtifact(
+    artifact: MavenArtifact,
     files: Map<string, WebjarFile>,
-    maxFiles: number
+    maxFiles: number,
+    requestedPaths: ReadonlySet<string>
   ): Promise<void> {
-    const artifactDirectory = path.join(
-      repository,
-      ...dependency.groupId.split("."),
-      dependency.artifactId,
-      dependency.version
-    );
-    const expandedRoot = path.join(artifactDirectory, "META-INF", "resources", "webjars");
-    if (await nodeExists(expandedRoot)) {
-      await this.collectExpanded(expandedRoot, expandedRoot, files, maxFiles);
-    }
-    if (files.size >= maxFiles) {
+    const requested = [...requestedPaths];
+    if (requested.length > 0 && !shouldInspectArtifact(artifact, requested)) return;
+    const stat = await fs.stat(artifact.jarPath);
+    if (stat.size > MAX_DEPENDENCY_JAR_SIZE) {
+      this.output.appendLine(`警告：略過超過 100 MB 的 Maven dependency JAR：${artifact.jarPath}`);
       return;
     }
-
-    const jarPath = path.join(artifactDirectory, `${dependency.artifactId}-${dependency.version}.jar`);
-    if (!(await nodeExists(jarPath))) {
-      return;
-    }
-    const zip = new AdmZip(jarPath);
+    const zip = new AdmZip(artifact.jarPath);
     for (const entry of zip.getEntries()) {
       if (files.size >= maxFiles) {
         break;
       }
       const entryName = entry.entryName.replace(/\\/g, "/");
-      const marker = "META-INF/resources/webjars/";
-      if (entry.isDirectory || !entryName.startsWith(marker) || !entryName.toLowerCase().endsWith(".js")) {
+      const resource = getDependencyResourcePath(entryName);
+      if (entry.isDirectory || !resource || !entryName.toLowerCase().endsWith(".js")) {
+        continue;
+      }
+      if (requested.length > 0 && !requested.some((requestedPath) =>
+        resourcePathMatches(requestedPath, resource.publicPath)
+      )) {
         continue;
       }
       if (entry.header.size > MAX_WEBJAR_FILE_SIZE) {
         this.output.appendLine(`警告：略過過大的 WebJar JavaScript：${entryName}`);
         continue;
       }
-      const relative = entryName.slice(marker.length);
       const cacheUri = vscode.Uri.joinPath(
         this.cacheRoot,
-        "webjars",
-        dependency.groupId,
-        dependency.artifactId,
-        dependency.version,
-        ...relative.split("/")
+        "maven-resources",
+        artifact.groupId,
+        artifact.artifactId,
+        artifact.version,
+        ...resource.publicPath.split("/")
       );
       await vscode.workspace.fs.createDirectory(cacheUri.with({ path: path.posix.dirname(cacheUri.path) }));
       await vscode.workspace.fs.writeFile(cacheUri, entry.getData());
-      files.set(cacheUri.toString(), { uri: cacheUri, webjarPath: `webjars/${relative}` });
+      files.set(cacheUri.toString(), { uri: cacheUri, webjarPath: resource.publicPath });
     }
   }
+}
 
-  private async collectExpanded(
-    root: string,
-    directory: string,
-    files: Map<string, WebjarFile>,
-    maxFiles: number
-  ): Promise<void> {
-    const entries = await fs.readdir(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      if (files.size >= maxFiles) {
-        return;
-      }
-      const absolute = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        await this.collectExpanded(root, absolute, files, maxFiles);
-      } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".js")) {
-        const relative = path.relative(root, absolute).split(path.sep).join("/");
-        const uri = vscode.Uri.file(absolute);
-        files.set(uri.toString(), { uri, webjarPath: `webjars/${relative}` });
-      }
-    }
+function shouldInspectArtifact(artifact: MavenArtifact, requestedPaths: string[]): boolean {
+  if (artifact.groupId === "org.webjars" || artifact.groupId === "org.webjars.npm") {
+    return requestedPaths.some((requestedPath) => {
+      const parts = requestedPath.replace(/^\/+/, "").split("/");
+      return parts[0] === "webjars" && parts[1]?.toLowerCase() === artifact.artifactId.toLowerCase();
+    });
   }
+  const needsClasspathResource = requestedPaths.some((requestedPath) =>
+    !requestedPath.replace(/^\/+/, "").startsWith("webjars/")
+  );
+  return needsClasspathResource &&
+    /(?:^|[-_.])(frontend|webapp|assets|static|ui|react|theme)(?:[-_.]|$)/i.test(artifact.artifactId);
+}
+
+function resourcePathMatches(requestedPath: string, candidatePath: string): boolean {
+  const requested = requestedPath.replace(/^\/+/, "").split("/");
+  const candidate = candidatePath.replace(/^\/+/, "").split("/");
+  if (requested.join("/") === candidate.join("/")) return true;
+  if (requested[0] !== "webjars" || candidate[0] !== "webjars" || requested[1] !== candidate[1]) {
+    return false;
+  }
+  return candidate.slice(-(requested.length - 2)).join("/") === requested.slice(2).join("/");
 }
 
 export function parseWebjarDependencies(xml: string): WebjarDependency[] {
@@ -206,19 +198,33 @@ function resolveProperties(value: string, properties: Map<string, string>): stri
   return resolved;
 }
 
-function toWebjarPath(value: string): string {
-  const marker = "/META-INF/resources/webjars/";
-  const index = value.indexOf(marker);
-  return index >= 0 ? `webjars/${value.slice(index + marker.length)}` : value;
+export function getDependencyResourcePath(entryName: string): { publicPath: string } | undefined {
+  for (const root of RESOURCE_ROOTS) {
+    if (!entryName.startsWith(root)) continue;
+    const relative = entryName.slice(root.length);
+    if (!relative || relative.includes("..")) return undefined;
+    return {
+      publicPath: root === "META-INF/resources/webjars/" ? `webjars/${relative}` : relative
+    };
+  }
+  return undefined;
 }
 
-async function nodeExists(value: string): Promise<boolean> {
-  try {
-    await fs.stat(value);
-    return true;
-  } catch {
-    return false;
+function toPublicResourcePath(value: string): string {
+  const normalized = value.replace(/\\/g, "/");
+  for (const marker of [
+    "/target/classes/META-INF/resources/webjars/",
+    "/target/classes/META-INF/resources/",
+    "/target/classes/static/",
+    "/target/classes/public/",
+    "/target/classes/resources/"
+  ]) {
+    const index = normalized.indexOf(marker);
+    if (index < 0) continue;
+    const relative = normalized.slice(index + marker.length);
+    return marker.includes("/webjars/") ? `webjars/${relative}` : relative;
   }
+  return normalized;
 }
 
 function messageOf(error: unknown): string {

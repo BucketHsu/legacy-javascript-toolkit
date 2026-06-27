@@ -143,8 +143,14 @@ export class JavaScriptIndexer implements vscode.Disposable {
       scriptReferences.flatMap((reference) => reference.resolvedUri ? [reference.resolvedUri.toString()] : [])
     );
     const includeWebjars = configuration.get<boolean>("includeWebjars", true);
+    const requestedDependencyPaths = new Set(
+      scriptReferences.flatMap((reference) => reference.webjarPath ? [reference.webjarPath] : [])
+    );
     const webjarFiles = includeWebjars
-      ? await this.webjarScanner.scan(Math.max(0, maxFiles - projectUris.length))
+      ? await this.webjarScanner.scan(
+        Math.max(0, maxFiles - projectUris.length),
+        requestedDependencyPaths
+      )
       : [];
     this.rebuildScriptOrder(scriptReferences, webjarFiles);
 

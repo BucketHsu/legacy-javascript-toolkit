@@ -1,5 +1,8 @@
 const assert = require("node:assert/strict");
 const Module = require("node:module");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 
 class Position {
   constructor(line, character) {
@@ -17,11 +20,18 @@ class Range {
 
 const vscodeMock = {
   Range,
+  RelativePattern: class RelativePattern {
+    constructor(base, pattern) {
+      this.base = base;
+      this.pattern = pattern;
+    }
+  },
   Uri: {
     file(fsPath) {
       return { fsPath, path: fsPath, toString: () => `file://${fsPath}` };
     }
-  }
+  },
+  workspace: {}
 };
 
 const originalLoad = Module._load;
@@ -32,7 +42,8 @@ Module._load = function (request, parent, isMain) {
 
 const { parseFunctionDefinitions } = require("../out/javascriptIndexer");
 const { extractScriptSources } = require("../out/scriptReferenceScanner");
-const { parseWebjarDependencies } = require("../out/webjarScanner");
+const { getDependencyResourcePath, parseWebjarDependencies } = require("../out/webjarScanner");
+const { MavenDependencyResolver } = require("../out/mavenDependencyResolver");
 
 const source = `
 /**
@@ -71,8 +82,13 @@ for (const expected of [
 }
 assert.match(byFullName.get("declared").jsdoc, /@returns/);
 assert.deepEqual(
-  extractScriptSources('<script src="/js/common.js?v=1"></script><script src="../page.js"></script>'),
-  ["/js/common.js?v=1", "../page.js"]
+  extractScriptSources('<script th:src="@{/js/buttonbar.js}" src="../../js/buttonbar.js"></script><script src="/js/page.js?v=1"></script>'),
+  ["/js/buttonbar.js", "/js/page.js?v=1"]
+);
+assert.deepEqual(getDependencyResourcePath("static/js/view.js"), { publicPath: "js/view.js" });
+assert.deepEqual(
+  getDependencyResourcePath("META-INF/resources/webjars/jquery/3.7.1/jquery.js"),
+  { publicPath: "webjars/jquery/3.7.1/jquery.js" }
 );
 
 const dependencies = parseWebjarDependencies(`
@@ -89,4 +105,61 @@ const dependencies = parseWebjarDependencies(`
 `);
 assert.deepEqual(dependencies, [{ groupId: "org.webjars", artifactId: "jquery", version: "3.7.1" }]);
 
-console.log(`Indexer tests passed (${definitions.length} definitions).`);
+async function testMavenResolution() {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "legacy-js-toolkit-"));
+  const project = path.join(root, "project");
+  const repository = path.join(root, "repository");
+  const writeArtifact = async (artifactId, version, pom) => {
+    const directory = path.join(repository, "com", "example", artifactId, version);
+    await fs.mkdir(directory, { recursive: true });
+    await fs.writeFile(path.join(directory, `${artifactId}-${version}.pom`), pom);
+    await fs.writeFile(path.join(directory, `${artifactId}-${version}.jar`), "fixture");
+  };
+
+  await fs.mkdir(project, { recursive: true });
+  await fs.writeFile(path.join(project, "pom.xml"), `
+    <project>
+      <parent><groupId>com.example</groupId><artifactId>parent</artifactId><version>1</version><relativePath/></parent>
+      <artifactId>sample</artifactId>
+      <dependencies><dependency><groupId>com.example</groupId><artifactId>app</artifactId></dependency></dependencies>
+    </project>
+  `);
+  await writeArtifact("parent", "1", `
+    <project><groupId>com.example</groupId><artifactId>parent</artifactId><version>1</version>
+      <dependencyManagement><dependencies>
+        <dependency><groupId>com.example</groupId><artifactId>app</artifactId><version>1.0</version></dependency>
+        <dependency><groupId>com.example</groupId><artifactId>frontend</artifactId><version>2.0</version></dependency>
+      </dependencies></dependencyManagement>
+    </project>
+  `);
+  await writeArtifact("app", "1.0", `
+    <project>
+      <parent><groupId>com.example</groupId><artifactId>parent</artifactId><version>1</version><relativePath/></parent>
+      <artifactId>app</artifactId>
+      <dependencies><dependency><groupId>com.example</groupId><artifactId>frontend</artifactId></dependency></dependencies>
+    </project>
+  `);
+  await writeArtifact("frontend", "2.0", `
+    <project><groupId>com.example</groupId><artifactId>frontend</artifactId><version>2.0</version></project>
+  `);
+
+  vscodeMock.workspace.workspaceFolders = [{ uri: vscodeMock.Uri.file(project), name: "fixture" }];
+  vscodeMock.workspace.getConfiguration = () => ({
+    get: (name, fallback) => name === "mavenRepository" ? repository : fallback
+  });
+  vscodeMock.workspace.findFiles = async () => [vscodeMock.Uri.file(path.join(project, "pom.xml"))];
+  const resolver = new MavenDependencyResolver({ appendLine() {} });
+  const result = await resolver.resolveWorkspaceArtifacts();
+  assert.deepEqual(
+    result.artifacts.map(({ groupId, artifactId, version }) => `${groupId}:${artifactId}:${version}`).sort(),
+    ["com.example:app:1.0", "com.example:frontend:2.0"]
+  );
+  await fs.rm(root, { recursive: true, force: true });
+}
+
+testMavenResolution()
+  .then(() => console.log(`Indexer tests passed (${definitions.length} definitions).`))
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

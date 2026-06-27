@@ -4,6 +4,8 @@ Traditional Chinese: `README.md` | English: `README.en.md`
 
 Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot and traditional Java Web projects. It provides inline HTML highlighting, function navigation, JSDoc hover, JSP/HTML script reference scanning, Maven WebJar indexing, and `jsconfig.json` assistance.
 
+Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by dependency JARs such as gkweb `gk-frontend` can be navigated without a machine-specific source path.
+
 ## Suitable projects
 
 - Spring Boot static resources
@@ -45,9 +47,11 @@ The extension prompts only when a workspace has no `jsconfig.json` or `tsconfig.
 
 The manual command can open the existing file or create `jsconfig.generated.json`. After creation, the extension can restart the TypeScript server or reload the VS Code window.
 
-## WebJar support
+## WebJar and classpath resource support
 
-The scanner checks compiled WebJar resources, parses `org.webjars` and `org.webjars.npm` dependencies from `pom.xml`, and reads matching artifacts from `M2_REPO` or `~/.m2/repository`. JavaScript entries inside JAR files are extracted to extension storage before indexing.
+The scanner follows workspace POMs, parent POMs, dependency management, imported BOMs, and relevant transitive dependencies. It indexes standard WebJars and Spring Boot dependency resources under `static`, `public`, `resources`, and `META-INF/resources`.
+
+The Maven local repository is resolved from the extension setting, `.mvn/maven.config`, environment variables, `~/.m2/settings.xml`, or the current user's `~/.m2/repository`. No machine-specific project path is required. Static Thymeleaf `th:src="@{...}"` references are also recognized.
 
 This is best-effort support, not a Java classpath. Minified libraries are difficult to navigate. Prefer `.d.ts`, project typings, or `@types/*` where available.
 
@@ -66,6 +70,7 @@ Diagnostics are written to the `Legacy JavaScript Toolkit` output channel.
 - `legacyJavaScriptToolkit.enableNavigation` (default: `true`)
 - `legacyJavaScriptToolkit.promptCreateJsconfig` (default: `true`)
 - `legacyJavaScriptToolkit.includeWebjars` (default: `true`)
+- `legacyJavaScriptToolkit.mavenRepository` (default: empty; auto-detected)
 - `legacyJavaScriptToolkit.maxFilesToIndex` (default: `3000`)
 - `legacyJavaScriptToolkit.excludeGlobs`
 
@@ -74,7 +79,7 @@ VS Code loads TextMate contributions statically, so the grammar cannot currently
 ## Installation
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.1.vsix
+code --install-extension legacy-javascript-toolkit-0.0.2.vsix
 ```
 
 You can also use `Install from VSIX...` in the Extensions view.
@@ -105,7 +110,7 @@ npm run package
 - Inline functions declared inside JSP/HTML `<script>` blocks are not indexed yet.
 - Minified or files larger than 2 MB are poor indexing candidates.
 - Non-UTF-8 files are skipped with an output warning.
-- WebJar support is best-effort and may not resolve complex Maven profiles or inherited versions.
+- Maven dependency resource support is best-effort and may not resolve complex profiles, classifiers, exclusions, or non-standard resource roots.
 - A JSP language extension must provide the `jsp` language id for the JSP provider selector.
 - TextMate matching is regex-based; use `/*html*/` for deterministic highlighting.
 - Embedded expressions currently use JavaScript grammar, so TS-only syntax may be incomplete.

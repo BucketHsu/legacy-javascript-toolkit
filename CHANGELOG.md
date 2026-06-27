@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.2
+
+- Change the Marketplace publisher to BucketHsu.
+- Resolve Maven parent POMs, dependency management, imported BOMs, and relevant transitive dependencies.
+- Index JavaScript from Spring Boot dependency JAR resource roots: static, public, resources, and META-INF/resources.
+- Support gkweb gk-frontend functions such as createView and createButtonbar without a machine-specific source path.
+- Detect the Maven local repository from extension settings, Maven configuration, environment variables, settings.xml, or the current user home directory.
+- Prefer static Thymeleaf th:src references over browser fallback src paths.
+- Limit Maven dependency traversal and prioritize referenced JavaScript resources to reduce indexing time and memory usage.
+
 ## 0.0.1
 
 - Add JavaScript / TypeScript inline HTML syntax highlighting.

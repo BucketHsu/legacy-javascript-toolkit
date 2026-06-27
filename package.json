@@ -2,7 +2,7 @@
   "name": "legacy-javascript-toolkit",
   "displayName": "Legacy JavaScript Toolkit",
   "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, WebJar indexing, and jsconfig.json assistance.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "BucketHsu",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -108,7 +108,12 @@
         "legacyJavaScriptToolkit.includeWebjars": {
           "type": "boolean",
           "default": true,
-          "description": "Try to index JavaScript files from Maven WebJar dependencies."
+          "description": "Try to index JavaScript files from Maven WebJar and Spring Boot classpath dependencies."
+        },
+        "legacyJavaScriptToolkit.mavenRepository": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Maven local repository path. Empty uses .mvn/maven.config, environment variables, ~/.m2/settings.xml, or ~/.m2/repository."
         },
         "legacyJavaScriptToolkit.maxFilesToIndex": {
           "type": "number",

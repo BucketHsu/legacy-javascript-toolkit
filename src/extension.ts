@@ -50,7 +50,8 @@ export function activate(context: vscode.ExtensionContext): void {
       if (
         event.affectsConfiguration("legacyJavaScriptToolkit.maxFilesToIndex") ||
         event.affectsConfiguration("legacyJavaScriptToolkit.excludeGlobs") ||
-        event.affectsConfiguration("legacyJavaScriptToolkit.includeWebjars")
+        event.affectsConfiguration("legacyJavaScriptToolkit.includeWebjars") ||
+        event.affectsConfiguration("legacyJavaScriptToolkit.mavenRepository")
       ) {
         void indexer.rebuild();
       }

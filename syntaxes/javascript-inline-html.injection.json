@@ -1,0 +1,87 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "inline.legacy-javascript-html",
+  "injectionSelector": "L:source.js, L:source.jsx, L:source.ts, L:source.tsx",
+  "patterns": [
+    { "include": "#semantic-variable" },
+    { "include": "#dom-property" },
+    { "include": "#insert-adjacent-html" },
+    { "include": "#explicit-marker" }
+  ],
+  "repository": {
+    "semantic-variable": {
+      "name": "meta.embedded.inline.html.variable",
+      "begin": "\\b(const|let|var)(\\s+)((?i:(?:html|template|markup|view)|[A-Za-z_$][\\w$]*(?:html|template|markup|view)[\\w$]*))(\\s*=\\s*)(`)",
+      "beginCaptures": {
+        "1": { "name": "storage.type.js" },
+        "3": { "name": "variable.other.readwrite.js" },
+        "5": { "name": "punctuation.definition.string.template.begin.js" }
+      },
+      "end": "(?<!\\\\)(`)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.string.template.end.js" }
+      },
+      "contentName": "meta.embedded.block.html",
+      "patterns": [{ "include": "#html-content" }]
+    },
+    "dom-property": {
+      "name": "meta.embedded.inline.html.dom-property",
+      "begin": "\\b([A-Za-z_$][\\w$]*(?:\\?\\.)?(?:innerHTML|outerHTML))(\\s*=\\s*)(`)",
+      "beginCaptures": {
+        "1": { "name": "variable.other.property.js" },
+        "3": { "name": "punctuation.definition.string.template.begin.js" }
+      },
+      "end": "(?<!\\\\)(`)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.string.template.end.js" }
+      },
+      "contentName": "meta.embedded.block.html",
+      "patterns": [{ "include": "#html-content" }]
+    },
+    "insert-adjacent-html": {
+      "name": "meta.embedded.inline.html.insert-adjacent",
+      "begin": "\\b([A-Za-z_$][\\w$]*(?:\\?\\.)?insertAdjacentHTML)(\\s*\\(\\s*(?:'[^']*'|\"[^\"]*\")\\s*,\\s*)(`)",
+      "beginCaptures": {
+        "1": { "name": "support.function.dom.js" },
+        "3": { "name": "punctuation.definition.string.template.begin.js" }
+      },
+      "end": "(?<!\\\\)(`)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.string.template.end.js" }
+      },
+      "contentName": "meta.embedded.block.html",
+      "patterns": [{ "include": "#html-content" }]
+    },
+    "explicit-marker": {
+      "name": "meta.embedded.inline.html.explicit",
+      "begin": "(/\\*\\s*(?i:html)\\s*\\*/\\s*)(`)",
+      "beginCaptures": {
+        "1": { "name": "comment.block.js" },
+        "2": { "name": "punctuation.definition.string.template.begin.js" }
+      },
+      "end": "(?<!\\\\)(`)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.string.template.end.js" }
+      },
+      "contentName": "meta.embedded.block.html",
+      "patterns": [{ "include": "#html-content" }]
+    },
+    "html-content": {
+      "patterns": [
+        {
+          "name": "meta.interpolation.js",
+          "begin": "(\\$\\{)",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.template-expression.begin.js" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.template-expression.end.js" }
+          },
+          "patterns": [{ "include": "source.js" }]
+        },
+        { "include": "text.html.basic" }
+      ]
+    }
+  }
+}

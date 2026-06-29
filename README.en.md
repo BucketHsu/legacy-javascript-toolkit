@@ -1,6 +1,6 @@
 # Legacy JavaScript Toolkit
 
-Traditional Chinese: `README.md` | English: `README.en.md`
+[繁體中文](README.md) | [English](README.en.md)
 
 Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot and traditional Java Web projects. It provides inline HTML highlighting, function navigation, JSDoc hover, JSP/HTML script reference scanning, Maven WebJar indexing, and `jsconfig.json` assistance.
 
@@ -92,7 +92,7 @@ VS Code loads TextMate contributions statically, so the grammar cannot currently
 ## Installation
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.4.vsix
+code --install-extension legacy-javascript-toolkit-0.0.5.vsix
 ```
 
 You can also use `Install from VSIX...` in the Extensions view.

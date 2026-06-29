@@ -1,8 +1,8 @@
 {
   "name": "legacy-javascript-toolkit",
   "displayName": "Legacy JavaScript Toolkit",
-  "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, Maven resource indexing, and safe jsconfig.json assistance.",
-  "version": "0.0.6",
+  "description": "Improve legacy JavaScript development with inline HTML highlighting, function and CSS class navigation, Maven resource indexing, and safe jsconfig.json assistance.",
+  "version": "0.0.7",
   "publisher": "BucketHsu",
   "license": "MIT",
   "repository": {
@@ -24,7 +24,8 @@
     "spring boot",
     "webjar",
     "html template literal",
-    "navigation"
+    "navigation",
+    "css class"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -80,11 +81,11 @@
       },
       {
         "command": "legacyJavaScriptToolkit.rebuildIndex",
-        "title": "Legacy JavaScript Toolkit: Rebuild JavaScript Index"
+        "title": "Legacy JavaScript Toolkit: Rebuild JavaScript and CSS Index"
       },
       {
         "command": "legacyJavaScriptToolkit.showIndexStatus",
-        "title": "Legacy JavaScript Toolkit: Show JavaScript Index Status"
+        "title": "Legacy JavaScript Toolkit: Show JavaScript and CSS Index Status"
       }
     ],
     "grammars": [
@@ -115,6 +116,11 @@
           "default": true,
           "description": "Enable legacy JavaScript function navigation."
         },
+        "legacyJavaScriptToolkit.enableCssClassNavigation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CSS class Go to Definition and Hover in HTML, JSP, JavaScript, and TypeScript."
+        },
         "legacyJavaScriptToolkit.promptCreateJsconfig": {
           "type": "boolean",
           "default": true,
@@ -128,7 +134,7 @@
         "legacyJavaScriptToolkit.includeWebjars": {
           "type": "boolean",
           "default": true,
-          "description": "Try to index JavaScript files from Maven WebJar and Spring Boot classpath dependencies."
+          "description": "Try to index JavaScript and CSS files from Maven WebJar and Spring Boot classpath dependencies."
         },
         "legacyJavaScriptToolkit.mavenRepository": {
           "type": "string",
@@ -140,6 +146,12 @@
           "default": 3000,
           "minimum": 100,
           "description": "Maximum number of JavaScript files to index."
+        },
+        "legacyJavaScriptToolkit.maxStylesheetFilesToIndex": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 50,
+          "description": "Maximum number of CSS files to index."
         },
         "legacyJavaScriptToolkit.excludeGlobs": {
           "type": "array",

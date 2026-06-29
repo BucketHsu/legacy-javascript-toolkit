@@ -2,7 +2,7 @@
 
 [繁體中文](README.md) | [English](README.en.md)
 
-Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設計的 VS Code 擴充套件。它補強原生 JavaScript 的 inline HTML 語法高亮、function 定義導覽、JSDoc Hover、JSP / HTML `script src` 關聯、Maven WebJar 索引，以及 `jsconfig.json` 建立輔助。
+Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設計的 VS Code 擴充套件。它補強原生 JavaScript 的 inline HTML 語法高亮、function 與 CSS class 定義導覽、Hover、Maven 前端資產索引，以及 `jsconfig.json` 建立輔助。
 
 ## 功能展示
 
@@ -15,6 +15,8 @@ Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設�
 0.0.3 起可檢查並安全更新既有 `jsconfig.json`。更新前可查看差異，套用時只補入缺少的目錄與建議設定，不會改寫既有 `target`、`paths` 或其他人工設定。
 
 0.0.6 可從 Maven parent 的 `dependencyManagement` 找出共用前端資產，改善 dependency JAR 內 function 與回傳物件方法的導覽，並移除舊版自動產生且已被 TypeScript 6 棄用的 `"baseUrl": "."`。
+
+0.0.7 新增 CSS class 導覽，可從 HTML、JSP 與常見 JavaScript DOM API 的 class 名稱移動到專案或 Maven dependency 中的 CSS 定義，Hover 時可直接查看規則內容。
 
 ## 適合的專案類型
 
@@ -91,7 +93,30 @@ $.fn.myPlugin = function (options) {};
 class Service { foo(value) {} }
 ```
 
-檔案建立或修改後會做 500 ms debounce 的單檔增量更新。大量移動、設定變更或 WebJar dependency 更新後，建議執行 `Rebuild JavaScript Index`。
+檔案建立或修改後會做 500 ms debounce 的單檔增量更新。大量移動、設定變更或 WebJar dependency 更新後，建議執行 `Rebuild JavaScript and CSS Index`。
+
+## CSS Class Navigator
+
+CSS class 索引支援專案 `.css`、`target/classes` 前端資產，以及 HTML / JSP `<link href>` 或靜態 Thymeleaf `th:href` 實際引用的 Maven dependency CSS。將游標放在 class 名稱上可使用 Ctrl+Click、Go to Definition、Peek Definition 與 Hover；同名 class 會回傳所有候選位置。
+
+支援 HTML、JSP 與 JavaScript / TypeScript inline HTML：
+
+```html
+<div class="card toolbar-item"></div>
+```
+
+也支援常見 DOM API 與 selector：
+
+```javascript
+element.classList.add("active");
+element.classList.toggle("hidden");
+element.setAttribute("class", "card selected");
+document.getElementsByClassName("card");
+document.querySelector(".card");
+element.closest(".panel");
+```
+
+為避免誤判，一般 JavaScript 字串不會被視為 class。JSP EL、scriptlet 或 JavaScript expression 內動態產生的 class 名稱也不會強行解析。
 
 ## jsconfig.json 輔助功能
 
@@ -125,11 +150,11 @@ class Service { foo(value) {} }
 
 索引器依序嘗試：
 
-1. 掃描 `target/classes` 下的 `META-INF/resources`、`static`、`public` 與 `resources` JavaScript。
+1. 掃描 `target/classes` 下的 `META-INF/resources`、`static`、`public` 與 `resources` JavaScript / CSS。
 2. 解析 workspace POM、parent POM、`dependencyManagement`、imported BOM 與相關 transitive dependency。
 3. 從每台電腦自己的 Maven local repository 找到對應 JAR，不依賴固定磁碟或專案原始碼路徑。
 4. 索引標準 `META-INF/resources/webjars`，以及 Spring Boot dependency JAR 內的 `static`、`public`、`resources`、`META-INF/resources`。
-5. 辨識 HTML / JSP / Thymeleaf 的 `src` 與靜態 `th:src="@{...}"`，並優先解壓實際引用的 JavaScript。
+5. 辨識 HTML / JSP / Thymeleaf 的 script `src`、stylesheet `href` 與靜態 `th:src` / `th:href`，並優先解壓實際引用的前端資產。
 
 Maven local repository 依序取自：
 
@@ -151,8 +176,8 @@ Maven local repository 依序取自：
 | `Legacy JavaScript Toolkit: Check jsconfig.json` | 檢查既有設定並提供差異預覽 |
 | `Legacy JavaScript Toolkit: Update jsconfig.json Safely` | 確認後只補入缺少的安全設定 |
 | `Legacy JavaScript Toolkit: Reset jsconfig.json Prompt` | 清除「不要再提醒」狀態 |
-| `Legacy JavaScript Toolkit: Rebuild JavaScript Index` | 重新掃描專案與 WebJar |
-| `Legacy JavaScript Toolkit: Show JavaScript Index Status` | 顯示 workspace、檔案、function、WebJar、時間與 jsconfig 狀態 |
+| `Legacy JavaScript Toolkit: Rebuild JavaScript and CSS Index` | 重新掃描專案與 Maven dependency 前端資產 |
+| `Legacy JavaScript Toolkit: Show JavaScript and CSS Index Status` | 顯示 JS function、CSS class、dependency 與 jsconfig 狀態 |
 
 診斷訊息會寫入 Output 面板的 `Legacy JavaScript Toolkit` channel。
 
@@ -162,11 +187,13 @@ Maven local repository 依序取自：
 | --- | --- | --- |
 | `legacyJavaScriptToolkit.enableInlineHtmlHighlight` | `true` | Inline HTML 高亮偏好；TextMate contribution 由 VS Code 載入，變更後需重新載入視窗 |
 | `legacyJavaScriptToolkit.enableNavigation` | `true` | 啟用 function Definition 與 Hover Provider |
+| `legacyJavaScriptToolkit.enableCssClassNavigation` | `true` | 啟用 HTML、JSP、JavaScript、TypeScript 的 CSS class Definition 與 Hover |
 | `legacyJavaScriptToolkit.promptCreateJsconfig` | `true` | 符合條件時詢問建立 jsconfig |
 | `legacyJavaScriptToolkit.promptUpdateJsconfig` | `true` | 既有 jsconfig 可安全補齊時顯示提醒 |
-| `legacyJavaScriptToolkit.includeWebjars` | `true` | 納入 Maven WebJar |
+| `legacyJavaScriptToolkit.includeWebjars` | `true` | 納入 Maven WebJar 與 Spring Boot dependency 的 JavaScript / CSS |
 | `legacyJavaScriptToolkit.mavenRepository` | 空字串 | 選用的 Maven local repository；留空時自動依 Maven 設定與使用者目錄判斷 |
 | `legacyJavaScriptToolkit.maxFilesToIndex` | `3000` | 索引檔案上限 |
+| `legacyJavaScriptToolkit.maxStylesheetFilesToIndex` | `1500` | CSS 索引檔案上限 |
 | `legacyJavaScriptToolkit.excludeGlobs` | 常見產物資料夾 | 排除的 glob patterns |
 
 TextMate grammar contribution 目前無法由 extension runtime 動態卸載；若要完全停用 inline HTML grammar，請停用此擴充套件。`enableInlineHtmlHighlight` 保留為偏好設定與後續版本相容用途。
@@ -176,7 +203,7 @@ TextMate grammar contribution 目前無法由 extension runtime 動態卸載；�
 從 VSIX 安裝：
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.5.vsix
+code --install-extension legacy-javascript-toolkit-0.0.7.vsix
 ```
 
 也可以在 VS Code 的 Extensions 檢視中，使用 `Install from VSIX...`。
@@ -202,7 +229,7 @@ npm run watch
 npm run package
 ```
 
-成功後會在專案根目錄產生 `legacy-javascript-toolkit-0.0.5.vsix`。
+成功後會在專案根目錄產生 `legacy-javascript-toolkit-0.0.7.vsix`。
 
 ## 已知限制
 
@@ -218,10 +245,12 @@ npm run package
 - `jsp` language id 取決於已安裝的 JSP 語言擴充套件；若檔案被辨識為其他 language id，JSP Provider 不會自動生效。
 - TextMate grammar injection 對複雜 template literal 的判斷有限，`/*html*/` 是最穩定的明確標記方式。
 - `${...}` expression 目前使用 JavaScript grammar；TypeScript 專屬型別語法的內嵌高亮可能不完整。
+- CSS class 索引以一般 CSS selector 為主；CSS escape、複雜動態 class、CSS Modules 與 HTML / JSP inline `<style>` 尚未完整支援。
+- JavaScript class 導覽只辨識 inline HTML、`classList`、`setAttribute("class", ...)`、`getElementsByClassName` 與常見 selector API，不會將所有字串當成 class。
 
 ## 疑難排解
 
-- 無法跳轉：先執行 `Show JavaScript Index Status`，確認 function 數量，再執行 `Rebuild JavaScript Index`。
+- 無法跳轉：先執行 `Show JavaScript and CSS Index Status`，確認 function 或 class 數量，再執行 `Rebuild JavaScript and CSS Index`。
 - 檔案未被索引：檢查 `excludeGlobs`、`maxFilesToIndex` 與 Output channel 的警告。
 - WebJar 或 Spring Boot dependency resource 未被索引：確認 JAR 已存在 Maven local repository；自訂 repository 可設定 `legacyJavaScriptToolkit.mavenRepository`。
 - VS Code 內建 JavaScript 導覽不足：執行 `Create jsconfig.json` 後，選擇 Restart TS Server 或 Reload Window。

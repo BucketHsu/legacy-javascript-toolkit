@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.7
+
+- Add CSS class Go to Definition, Peek Definition, and Hover support for HTML and JSP.
+- Recognize class names in inline HTML and common JavaScript or TypeScript DOM APIs.
+- Index project stylesheets, linked stylesheets, `target/classes` CSS, and referenced Maven dependency CSS.
+- Return multiple locations for duplicate CSS class definitions.
+- Add incremental CSS file updates, CSS index status, settings, tests, and documentation.
+
 ## 0.0.6
 
 - Stop generating the TypeScript 6 deprecated `baseUrl` compiler option.

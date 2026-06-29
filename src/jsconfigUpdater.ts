@@ -10,8 +10,7 @@ import {
 const REQUIRED_COMPILER_OPTIONS: Record<string, string | boolean> = {
   target: "ES2020",
   allowJs: true,
-  checkJs: false,
-  baseUrl: "."
+  checkJs: false
 };
 
 const RECOMMENDED_EXCLUDES = ["node_modules", "target", "dist", "build", ".git"];
@@ -24,11 +23,13 @@ export interface JsconfigUpdateAnalysis {
   missingIncludes: string[];
   missingExcludes: string[];
   missingCompilerOptions: Record<string, string | boolean>;
+  removedCompilerOptions: string[];
 }
 
 /**
- * Computes a minimal JSONC update. Existing values and array entries are never
- * replaced; only missing compiler options, includes, and excludes are inserted.
+ * Computes a minimal JSONC update. Existing values and array entries are not
+ * replaced. Missing settings are inserted, and the obsolete generated
+ * `baseUrl: "."` setting is removed for TypeScript 6/7 compatibility.
  */
 export function analyzeJsconfig(text: string, expectedIncludes: string[]): JsconfigUpdateAnalysis {
   const parseErrors: ParseError[] = [];
@@ -68,6 +69,7 @@ export function analyzeJsconfig(text: string, expectedIncludes: string[]): Jscon
   const missingExcludes = RECOMMENDED_EXCLUDES
     .filter((pattern) => !existingExcludes.has(normalizePattern(pattern)));
   const existingCompilerOptions = isObject(compilerOptions) ? compilerOptions : {};
+  const removedCompilerOptions = existingCompilerOptions.baseUrl === "." ? ["baseUrl"] : [];
   const missingCompilerOptions = Object.fromEntries(
     Object.entries(REQUIRED_COMPILER_OPTIONS).filter(([name]) => !(name in existingCompilerOptions))
   );
@@ -80,6 +82,9 @@ export function analyzeJsconfig(text: string, expectedIncludes: string[]): Jscon
     for (const [name, optionValue] of Object.entries(missingCompilerOptions)) {
       updatedText = applyModification(updatedText, ["compilerOptions", name], optionValue, formattingOptions);
     }
+  }
+  for (const name of removedCompilerOptions) {
+    updatedText = applyModification(updatedText, ["compilerOptions", name], undefined, formattingOptions);
   }
   updatedText = appendMissingArrayValues(
     updatedText,
@@ -103,7 +108,8 @@ export function analyzeJsconfig(text: string, expectedIncludes: string[]): Jscon
     errors: [],
     missingIncludes,
     missingExcludes,
-    missingCompilerOptions
+    missingCompilerOptions,
+    removedCompilerOptions
   };
 }
 
@@ -159,7 +165,8 @@ function invalidAnalysis(text: string, errors: string[]): JsconfigUpdateAnalysis
     errors,
     missingIncludes: [],
     missingExcludes: [],
-    missingCompilerOptions: {}
+    missingCompilerOptions: {},
+    removedCompilerOptions: []
   };
 }
 

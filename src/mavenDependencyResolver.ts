@@ -65,6 +65,7 @@ export class MavenDependencyResolver {
       if (effective) {
         if (effective.coordinate.groupId) resourceGroups.add(effective.coordinate.groupId);
         workspaceDependencies.push(...effective.dependencies.filter(isRuntimeDependency));
+        workspaceDependencies.push(...managedResourceCandidates(effective.dependencyManagement));
       }
     }
     for (const dependency of workspaceDependencies) {
@@ -391,6 +392,25 @@ function isResourceHint(dependency: Pick<MavenCoordinate, "groupId" | "artifactI
   return dependency.groupId === "org.webjars" ||
     dependency.groupId === "org.webjars.npm" ||
     /(?:^|[-_.])(frontend|webapp|webjar|assets|static|ui|react|theme)(?:[-_.]|$)/i.test(dependency.artifactId);
+}
+
+/**
+ * Some Java Web parent POMs expose shared browser assets only through
+ * dependencyManagement. They are not normal Maven runtime dependencies, but
+ * remain useful best-effort candidates when a page references an unresolved
+ * static resource such as /js/buttonbar.js.
+ */
+function managedResourceCandidates(dependencies: Map<string, string>): RawDependency[] {
+  const candidates: RawDependency[] = [];
+  for (const [key, version] of dependencies) {
+    const separator = key.lastIndexOf(":");
+    if (separator <= 0) continue;
+    const groupId = key.slice(0, separator);
+    const artifactId = key.slice(separator + 1);
+    if (!/(?:^|[-_.])(frontend|assets|static|theme)(?:[-_.]|$)/i.test(artifactId)) continue;
+    candidates.push({ groupId, artifactId, version });
+  }
+  return candidates;
 }
 
 function dependencyKey(coordinate: Pick<MavenCoordinate, "groupId" | "artifactId">): string {

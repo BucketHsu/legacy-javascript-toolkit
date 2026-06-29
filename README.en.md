@@ -2,7 +2,7 @@
 
 [繁體中文](README.md) | [English](README.en.md)
 
-Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot and traditional Java Web projects. It provides inline HTML highlighting, function navigation, JSDoc hover, JSP/HTML script reference scanning, Maven WebJar indexing, and `jsconfig.json` assistance.
+Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot and traditional Java Web projects. It provides inline HTML highlighting, function and CSS class navigation, Maven resource indexing, and `jsconfig.json` assistance.
 
 ## Feature demos
 
@@ -10,9 +10,13 @@ Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot 
 
 ![Legacy JavaScript Toolkit feature demo 2](images/legacy-javascript-toolkit%20-demo2.gif)
 
-Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by dependency JARs such as gkweb `gk-frontend` can be navigated without a machine-specific source path.
+Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by shared dependency JARs can be navigated without a machine-specific source path.
 
-Version 0.0.3 can inspect and safely update an existing `jsconfig.json`. It previews the diff and only adds missing project paths or recommended settings without replacing existing `target`, `baseUrl`, `paths`, comments, or other user settings.
+Version 0.0.3 can inspect and safely update an existing `jsconfig.json`. It previews the diff and only adds missing project paths or recommended settings without replacing existing `target`, `paths`, comments, or other user settings.
+
+Version 0.0.6 discovers shared frontend assets managed by a Maven parent POM, improving navigation to functions and returned object methods from dependency JARs. It also removes the legacy generated `"baseUrl": "."` setting deprecated by TypeScript 6.
+
+Version 0.0.7 adds CSS class navigation from HTML, JSP, inline HTML, and common JavaScript DOM APIs to CSS definitions in the workspace or Maven dependency JARs.
 
 ## Suitable projects
 
@@ -47,7 +51,13 @@ The delayed workspace index uses the TypeScript AST and supports function declar
 - Exact qualified-name matching before short-name fallback
 - JS/JSX/TS/TSX definitions and call sites in JavaScript, TypeScript, HTML, and JSP documents
 
-Changed files receive a debounced incremental update. Use `Rebuild JavaScript Index` after dependency or large workspace changes.
+Changed files receive a debounced incremental update. Use `Rebuild JavaScript and CSS Index` after dependency or large workspace changes.
+
+## CSS Class Navigator
+
+Ctrl+Click, Go to Definition, Peek Definition, and Hover are available for class names in HTML, JSP, and inline HTML in JavaScript or TypeScript. The index includes project CSS, `target/classes` resources, and CSS referenced through static `href` or Thymeleaf `th:href` paths from Maven dependencies.
+
+Supported JavaScript patterns include `classList.add/remove/toggle/contains/replace`, `setAttribute("class", ...)`, `getElementsByClassName`, `querySelector`, `querySelectorAll`, `matches`, `closest`, and jQuery selectors. Ordinary strings are ignored to reduce false positives. Dynamic JSP or JavaScript-generated class names are best-effort only.
 
 ## jsconfig.json assistance
 
@@ -57,11 +67,13 @@ The manual command can open the existing file or create `jsconfig.generated.json
 
 Existing JSONC files, including comments and trailing commas, can be checked and updated safely. The extension only appends missing include/exclude entries and missing compiler options. Invalid files are opened for correction and are never overwritten. Automatic update prompts remain disabled when a root `tsconfig.json` exists.
 
+New files no longer include the TypeScript 6 deprecated `baseUrl` option. Safe updates remove the legacy generated `"baseUrl": "."`; custom non-dot `baseUrl` values are preserved to avoid changing existing module resolution behavior.
+
 ## WebJar and classpath resource support
 
 The scanner follows workspace POMs, parent POMs, dependency management, imported BOMs, and relevant transitive dependencies. It indexes standard WebJars and Spring Boot dependency resources under `static`, `public`, `resources`, and `META-INF/resources`.
 
-The Maven local repository is resolved from the extension setting, `.mvn/maven.config`, environment variables, `~/.m2/settings.xml`, or the current user's `~/.m2/repository`. No machine-specific project path is required. Static Thymeleaf `th:src="@{...}"` references are also recognized.
+The Maven local repository is resolved from the extension setting, `.mvn/maven.config`, environment variables, `~/.m2/settings.xml`, or the current user's `~/.m2/repository`. No machine-specific project path is required. Static Thymeleaf `th:src="@{...}"` and `th:href="@{...}"` references are also recognized.
 
 This is best-effort support, not a Java classpath. Minified libraries are difficult to navigate. Prefer `.d.ts`, project typings, or `@types/*` where available.
 
@@ -71,8 +83,8 @@ This is best-effort support, not a Java classpath. Minified libraries are diffic
 - `Legacy JavaScript Toolkit: Check jsconfig.json`
 - `Legacy JavaScript Toolkit: Update jsconfig.json Safely`
 - `Legacy JavaScript Toolkit: Reset jsconfig.json Prompt`
-- `Legacy JavaScript Toolkit: Rebuild JavaScript Index`
-- `Legacy JavaScript Toolkit: Show JavaScript Index Status`
+- `Legacy JavaScript Toolkit: Rebuild JavaScript and CSS Index`
+- `Legacy JavaScript Toolkit: Show JavaScript and CSS Index Status`
 
 Diagnostics are written to the `Legacy JavaScript Toolkit` output channel.
 
@@ -80,11 +92,13 @@ Diagnostics are written to the `Legacy JavaScript Toolkit` output channel.
 
 - `legacyJavaScriptToolkit.enableInlineHtmlHighlight` (default: `true`)
 - `legacyJavaScriptToolkit.enableNavigation` (default: `true`)
+- `legacyJavaScriptToolkit.enableCssClassNavigation` (default: `true`)
 - `legacyJavaScriptToolkit.promptCreateJsconfig` (default: `true`)
 - `legacyJavaScriptToolkit.promptUpdateJsconfig` (default: `true`)
 - `legacyJavaScriptToolkit.includeWebjars` (default: `true`)
 - `legacyJavaScriptToolkit.mavenRepository` (default: empty; auto-detected)
 - `legacyJavaScriptToolkit.maxFilesToIndex` (default: `3000`)
+- `legacyJavaScriptToolkit.maxStylesheetFilesToIndex` (default: `1500`)
 - `legacyJavaScriptToolkit.excludeGlobs`
 
 VS Code loads TextMate contributions statically, so the grammar cannot currently be unloaded at runtime. Fully disabling inline HTML highlighting requires disabling the extension; the setting is retained for preference and forward compatibility.
@@ -92,7 +106,7 @@ VS Code loads TextMate contributions statically, so the grammar cannot currently
 ## Installation
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.5.vsix
+code --install-extension legacy-javascript-toolkit-0.0.7.vsix
 ```
 
 You can also use `Install from VSIX...` in the Extensions view.
@@ -127,10 +141,12 @@ npm run package
 - A JSP language extension must provide the `jsp` language id for the JSP provider selector.
 - TextMate matching is regex-based; use `/*html*/` for deterministic highlighting.
 - Embedded expressions currently use JavaScript grammar, so TS-only syntax may be incomplete.
+- CSS escape sequences, complex dynamic classes, CSS Modules, and inline `<style>` definitions are not fully supported.
+- JavaScript class navigation is limited to inline HTML and recognized DOM or selector APIs; arbitrary strings are intentionally ignored.
 
 ## Troubleshooting
 
-- Run `Show JavaScript Index Status`, then `Rebuild JavaScript Index`.
+- Run `Show JavaScript and CSS Index Status`, then `Rebuild JavaScript and CSS Index`.
 - Check exclude globs, the file limit, and the output channel.
 - Verify WebJar artifacts exist in the local Maven repository.
 - Create `jsconfig.json`, then restart the TypeScript server.

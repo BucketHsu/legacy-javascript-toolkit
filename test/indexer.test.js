@@ -41,8 +41,11 @@ Module._load = function (request, parent, isMain) {
 };
 
 const { parseFunctionDefinitions } = require("../out/javascriptIndexer");
+const { parseCssClassDefinitions } = require("../out/cssClassIndexer");
+const { cssClassReferenceAt } = require("../out/cssClassProvider");
 const { analyzeJsconfig } = require("../out/jsconfigUpdater");
 const { extractScriptSources } = require("../out/scriptReferenceScanner");
+const { extractStylesheetSources } = require("../out/stylesheetReferenceScanner");
 const { getDependencyResourcePath, parseWebjarDependencies } = require("../out/webjarScanner");
 const { MavenDependencyResolver } = require("../out/mavenDependencyResolver");
 
@@ -64,6 +67,10 @@ $.fn.myPlugin = function (options) {};
 class UserService {
   classMethod(id) { return id; }
 }
+const createWidget = () => {
+  const setEndpoint = (url) => url;
+  return { setEndpoint };
+};
 `;
 
 const definitions = parseFunctionDefinitions(vscodeMock.Uri.file("/workspace/sample.js"), source, "project");
@@ -77,7 +84,9 @@ for (const expected of [
   "MyApp.util.assigned",
   "window.globalFunction",
   "$.fn.myPlugin",
-  "UserService.classMethod"
+  "UserService.classMethod",
+  "createWidget",
+  "setEndpoint"
 ]) {
   assert.ok(byFullName.has(expected), `missing definition: ${expected}`);
 }
@@ -91,6 +100,57 @@ assert.deepEqual(
   getDependencyResourcePath("META-INF/resources/webjars/jquery/3.7.1/jquery.js"),
   { publicPath: "webjars/jquery/3.7.1/jquery.js" }
 );
+
+const cssDefinitions = parseCssClassDefinitions(vscodeMock.Uri.file("/workspace/site.css"), `
+.card, .toolbar-item:hover { color: red; }
+@media (min-width: 800px) {
+  .card.active { display: block; }
+}
+[data-value=".ignored"] { color: blue; }
+`, "project");
+assert.deepEqual(
+  cssDefinitions.map((definition) => definition.name).sort(),
+  ["active", "card", "card", "toolbar-item"]
+);
+assert.deepEqual(
+  extractStylesheetSources('<link rel="stylesheet" th:href="@{/css/site.css}" href="../../css/site.css"><link href="/css/print.css?v=1" rel="stylesheet">'),
+  ["/css/site.css", "/css/print.css?v=1"]
+);
+
+function documentWithLine(languageId, line) {
+  return {
+    languageId,
+    uri: vscodeMock.Uri.file("/workspace/page.js"),
+    lineAt: () => ({ text: line }),
+    getText: (range) => line.slice(range.start.character, range.end.character),
+    getWordRangeAtPosition(position) {
+      const pattern = /-?[_a-zA-Z][\w-]*/g;
+      let match;
+      while ((match = pattern.exec(line)) !== null) {
+        if (position.character >= match.index && position.character <= match.index + match[0].length) {
+          return new Range(0, match.index, 0, match.index + match[0].length);
+        }
+      }
+      return undefined;
+    }
+  };
+}
+
+function classReference(languageId, line, value) {
+  const document = documentWithLine(languageId, line);
+  return cssClassReferenceAt(document, new Position(0, line.indexOf(value) + 1));
+}
+
+assert.equal(classReference("html", '<div class="abc other">', "abc").name, "abc");
+assert.equal(classReference("jsp", '<div class="base ${dynamic}">', "base").name, "base");
+assert.equal(classReference("jsp", '<div class="base ${dynamic}">', "dynamic"), undefined);
+assert.equal(classReference("javascript", 'node.classList.add("abc")', "abc").name, "abc");
+assert.equal(classReference("javascript", 'node.setAttribute("class", "abc other")', "abc").name, "abc");
+assert.equal(classReference("javascript", 'document.getElementsByClassName("abc")', "abc").name, "abc");
+assert.equal(classReference("javascript", 'document.querySelector(".abc")', "abc").name, "abc");
+assert.equal(classReference("javascript", 'node.closest(".abc")', "abc").name, "abc");
+assert.equal(classReference("javascript", 'const html = `<div class=\'abc\'>`', "abc").name, "abc");
+assert.equal(classReference("javascript", 'const message = "abc"', "abc"), undefined);
 
 const dependencies = parseWebjarDependencies(`
   <project>
@@ -110,6 +170,7 @@ const jsconfig = `{
   // Keep project-specific compiler settings.
   "compilerOptions": {
     "target": "ES2018",
+    "baseUrl": ".",
     "paths": { "@app/*": ["src/*"] },
   },
   "include": [
@@ -126,11 +187,14 @@ assert.equal(jsconfigAnalysis.changed, true);
 assert.match(jsconfigAnalysis.updatedText, /Keep project-specific compiler settings/);
 const updatedJsconfig = require("jsonc-parser").parse(jsconfigAnalysis.updatedText);
 assert.equal(updatedJsconfig.compilerOptions.target, "ES2018");
+assert.equal(updatedJsconfig.compilerOptions.baseUrl, undefined);
 assert.deepEqual(updatedJsconfig.compilerOptions.paths, { "@app/*": ["src/*"] });
 assert.equal(updatedJsconfig.compilerOptions.allowJs, true);
 assert.ok(updatedJsconfig.include.includes("module-a/src/main/resources/static/**/*.js"));
 assert.ok(updatedJsconfig.exclude.includes("target"));
 assert.equal(analyzeJsconfig("{ invalid", []).valid, false);
+const customBaseUrl = analyzeJsconfig('{"compilerOptions":{"baseUrl":"src"}}', []);
+assert.equal(require("jsonc-parser").parse(customBaseUrl.updatedText).compilerOptions.baseUrl, "src");
 
 async function testMavenResolution() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "legacy-js-toolkit-"));
@@ -163,7 +227,6 @@ async function testMavenResolution() {
     <project>
       <parent><groupId>com.example</groupId><artifactId>parent</artifactId><version>1</version><relativePath/></parent>
       <artifactId>app</artifactId>
-      <dependencies><dependency><groupId>com.example</groupId><artifactId>frontend</artifactId></dependency></dependencies>
     </project>
   `);
   await writeArtifact("frontend", "2.0", `

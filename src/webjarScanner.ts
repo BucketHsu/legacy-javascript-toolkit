@@ -4,12 +4,6 @@ import AdmZip from "adm-zip";
 import * as vscode from "vscode";
 import { MavenArtifact, MavenDependencyResolver } from "./mavenDependencyResolver";
 
-const TARGET_RESOURCE_GLOBS = [
-  "**/target/classes/META-INF/resources/**/*.js",
-  "**/target/classes/static/**/*.js",
-  "**/target/classes/public/**/*.js",
-  "**/target/classes/resources/**/*.js"
-];
 const TARGET_EXCLUDE = "{**/node_modules/**,**/dist/**,**/build/**,**/.git/**}";
 const MAX_WEBJAR_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_DEPENDENCY_JAR_SIZE = 100 * 1024 * 1024;
@@ -34,6 +28,7 @@ interface WebjarDependency {
 
 export class WebjarScanner {
   private readonly mavenResolver: MavenDependencyResolver;
+  private artifactResolution?: Promise<{ artifacts: MavenArtifact[] }>;
 
   public constructor(
     private readonly cacheRoot: vscode.Uri,
@@ -43,19 +38,45 @@ export class WebjarScanner {
   }
 
   public async scan(maxFiles: number, requestedPaths: ReadonlySet<string> = new Set()): Promise<WebjarFile[]> {
+    return this.scanResources("js", maxFiles, requestedPaths);
+  }
+
+  public async scanStylesheets(
+    maxFiles: number,
+    requestedPaths: ReadonlySet<string> = new Set()
+  ): Promise<WebjarFile[]> {
+    return this.scanResources("css", maxFiles, requestedPaths);
+  }
+
+  public resetCache(): void {
+    this.artifactResolution = undefined;
+  }
+
+  private async scanResources(
+    extension: "js" | "css",
+    maxFiles: number,
+    requestedPaths: ReadonlySet<string>
+  ): Promise<WebjarFile[]> {
+    if (maxFiles <= 0) return [];
     const files = new Map<string, WebjarFile>();
-    await this.scanTargetOutput(files, maxFiles);
+    await this.scanTargetOutput(files, maxFiles, extension);
     if (files.size >= maxFiles) {
       return [...files.values()];
     }
+    // Dependency CSS is indexed from actual link references to avoid scanning
+    // every stylesheet in a large Maven graph when the project does not use it.
+    if (extension === "css" && requestedPaths.size === 0) {
+      return [...files.values()];
+    }
 
-    const { artifacts } = await this.mavenResolver.resolveWorkspaceArtifacts();
+    this.artifactResolution ??= this.mavenResolver.resolveWorkspaceArtifacts();
+    const { artifacts } = await this.artifactResolution;
     for (const artifact of artifacts) {
       if (files.size >= maxFiles) {
         break;
       }
       try {
-        await this.scanArtifact(artifact, files, maxFiles, requestedPaths);
+        await this.scanArtifact(artifact, files, maxFiles, requestedPaths, extension);
       } catch (error) {
         this.output.appendLine(
           `警告：無法掃描 Maven dependency ${artifact.groupId}:${artifact.artifactId}:${artifact.version}（${messageOf(error)}）`
@@ -65,9 +86,13 @@ export class WebjarScanner {
     return [...files.values()];
   }
 
-  private async scanTargetOutput(files: Map<string, WebjarFile>, maxFiles: number): Promise<void> {
+  private async scanTargetOutput(
+    files: Map<string, WebjarFile>,
+    maxFiles: number,
+    extension: "js" | "css"
+  ): Promise<void> {
     for (const folder of vscode.workspace.workspaceFolders ?? []) {
-      for (const glob of TARGET_RESOURCE_GLOBS) {
+      for (const glob of targetResourceGlobs(extension)) {
         const matches = await vscode.workspace.findFiles(
           new vscode.RelativePattern(folder, glob),
           TARGET_EXCLUDE,
@@ -86,7 +111,8 @@ export class WebjarScanner {
     artifact: MavenArtifact,
     files: Map<string, WebjarFile>,
     maxFiles: number,
-    requestedPaths: ReadonlySet<string>
+    requestedPaths: ReadonlySet<string>,
+    extension: "js" | "css"
   ): Promise<void> {
     const requested = [...requestedPaths];
     if (requested.length > 0 && !shouldInspectArtifact(artifact, requested)) return;
@@ -102,7 +128,7 @@ export class WebjarScanner {
       }
       const entryName = entry.entryName.replace(/\\/g, "/");
       const resource = getDependencyResourcePath(entryName);
-      if (entry.isDirectory || !resource || !entryName.toLowerCase().endsWith(".js")) {
+      if (entry.isDirectory || !resource || !entryName.toLowerCase().endsWith(`.${extension}`)) {
         continue;
       }
       if (requested.length > 0 && !requested.some((requestedPath) =>
@@ -111,7 +137,7 @@ export class WebjarScanner {
         continue;
       }
       if (entry.header.size > MAX_WEBJAR_FILE_SIZE) {
-        this.output.appendLine(`警告：略過過大的 WebJar JavaScript：${entryName}`);
+        this.output.appendLine(`警告：略過過大的 Maven 前端資產：${entryName}`);
         continue;
       }
       const cacheUri = vscode.Uri.joinPath(
@@ -127,6 +153,15 @@ export class WebjarScanner {
       files.set(cacheUri.toString(), { uri: cacheUri, webjarPath: resource.publicPath });
     }
   }
+}
+
+function targetResourceGlobs(extension: "js" | "css"): string[] {
+  return [
+    `**/target/classes/META-INF/resources/**/*.${extension}`,
+    `**/target/classes/static/**/*.${extension}`,
+    `**/target/classes/public/**/*.${extension}`,
+    `**/target/classes/resources/**/*.${extension}`
+  ];
 }
 
 function shouldInspectArtifact(artifact: MavenArtifact, requestedPaths: string[]): boolean {

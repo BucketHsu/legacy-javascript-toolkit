@@ -1,6 +1,6 @@
 # Legacy JavaScript Toolkit
 
-繁體中文版：`README.md` | English version: `README.en.md`
+[繁體中文](README.md) | [English](README.en.md)
 
 Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設計的 VS Code 擴充套件。它補強原生 JavaScript 的 inline HTML 語法高亮、function 定義導覽、JSDoc Hover、JSP / HTML `script src` 關聯、Maven WebJar 索引，以及 `jsconfig.json` 建立輔助。
 
@@ -172,7 +172,7 @@ TextMate grammar contribution 目前無法由 extension runtime 動態卸載；�
 從 VSIX 安裝：
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.4.vsix
+code --install-extension legacy-javascript-toolkit-0.0.5.vsix
 ```
 
 也可以在 VS Code 的 Extensions 檢視中，使用 `Install from VSIX...`。
@@ -198,7 +198,7 @@ npm run watch
 npm run package
 ```
 
-成功後會在專案根目錄產生 `legacy-javascript-toolkit-0.0.4.vsix`。
+成功後會在專案根目錄產生 `legacy-javascript-toolkit-0.0.5.vsix`。
 
 ## 已知限制
 

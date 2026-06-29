@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5
+
+- Fix the Traditional Chinese and English README language switch links.
+
 ## 0.0.4
 
 - Add two animated feature demos to the Traditional Chinese and English README files.

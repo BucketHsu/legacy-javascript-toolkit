@@ -10,11 +10,11 @@ Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設�
 
 ![Legacy JavaScript Toolkit 功能展示二](images/legacy-javascript-toolkit%20-demo2.gif)
 
-0.0.2 起支援 Maven parent、transitive dependency 與 Spring Boot dependency JAR 內的前端資產，可直接導覽 gkweb `gk-frontend` 提供的 `createView`、`createButtonbar` 等 function，不需要設定特定電腦的 gkweb 原始碼路徑。
+0.0.2 起支援 Maven parent、transitive dependency 與 Spring Boot dependency JAR 內的前端資產，可直接導覽共用 dependency 提供的 function，不需要設定特定電腦的套件原始碼路徑。
 
 0.0.3 起可檢查並安全更新既有 `jsconfig.json`。更新前可查看差異，套用時只補入缺少的目錄與建議設定，不會改寫既有 `target`、`paths` 或其他人工設定。
 
-0.0.6 可從 Maven parent 的 `dependencyManagement` 找出共用前端資產，改善 `gk-frontend` 等 dependency JAR 中 `createButtonbar`、`setApiUrl` 的導覽，並移除舊版自動產生且已被 TypeScript 6 棄用的 `"baseUrl": "."`。
+0.0.6 可從 Maven parent 的 `dependencyManagement` 找出共用前端資產，改善 dependency JAR 內 function 與回傳物件方法的導覽，並移除舊版自動產生且已被 TypeScript 6 棄用的 `"baseUrl": "."`。
 
 ## 適合的專案類型
 
@@ -139,7 +139,7 @@ Maven local repository 依序取自：
 4. 使用者 `~/.m2/settings.xml` 的 `<localRepository>`。
 5. 使用者的 `~/.m2/repository`。
 
-例如 NTPCLandFx 經 `gk-react` 間接相依 `gk-frontend` 時，索引器可從本機 Maven repository 的 `gk-frontend` JAR 找到 `static/js/view.js`、`buttonbar.js` 與 `function.js`，不需要知道 gkweb 原始碼位於哪個磁碟。
+例如專案透過 Maven parent 管理共用前端資產時，索引器可從本機 Maven repository 的 dependency JAR 找到頁面實際引用的 JavaScript，不需要知道套件原始碼位於哪個磁碟。
 
 這是 best-effort 索引，不等同 Java classpath。Minified JavaScript 的 function 導覽通常不理想；第三方 library 建議另外提供 `.d.ts`、`@types/*` 或專案自己的 typings。
 

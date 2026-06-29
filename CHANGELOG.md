@@ -6,7 +6,7 @@
 - Remove legacy generated `"baseUrl": "."` during safe `jsconfig.json` updates.
 - Preserve custom non-dot `baseUrl` values to avoid changing module resolution behavior.
 - Index frontend artifacts inherited from Maven parent `dependencyManagement` when resolving referenced JavaScript resources.
-- Restore navigation for shared functions and returned object methods such as `createButtonbar` and `setApiUrl`.
+- Restore navigation for shared functions and returned object methods from dependency JARs.
 
 ## 0.0.5
 
@@ -33,7 +33,7 @@
 - Change the Marketplace publisher to BucketHsu.
 - Resolve Maven parent POMs, dependency management, imported BOMs, and relevant transitive dependencies.
 - Index JavaScript from Spring Boot dependency JAR resource roots: static, public, resources, and META-INF/resources.
-- Support gkweb gk-frontend functions such as createView and createButtonbar without a machine-specific source path.
+- Support functions from shared frontend dependency JARs without a machine-specific source path.
 - Detect the Maven local repository from extension settings, Maven configuration, environment variables, settings.xml, or the current user home directory.
 - Prefer static Thymeleaf th:src references over browser fallback src paths.
 - Limit Maven dependency traversal and prioritize referenced JavaScript resources to reduce indexing time and memory usage.

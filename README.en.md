@@ -10,11 +10,11 @@ Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot 
 
 ![Legacy JavaScript Toolkit feature demo 2](images/legacy-javascript-toolkit%20-demo2.gif)
 
-Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by dependency JARs such as gkweb `gk-frontend` can be navigated without a machine-specific source path.
+Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by shared dependency JARs can be navigated without a machine-specific source path.
 
 Version 0.0.3 can inspect and safely update an existing `jsconfig.json`. It previews the diff and only adds missing project paths or recommended settings without replacing existing `target`, `paths`, comments, or other user settings.
 
-Version 0.0.6 discovers shared frontend assets managed by a Maven parent POM, improving navigation to functions such as `createButtonbar` and `setApiUrl` from `gk-frontend` dependency JARs. It also removes the legacy generated `"baseUrl": "."` setting deprecated by TypeScript 6.
+Version 0.0.6 discovers shared frontend assets managed by a Maven parent POM, improving navigation to functions and returned object methods from dependency JARs. It also removes the legacy generated `"baseUrl": "."` setting deprecated by TypeScript 6.
 
 ## Suitable projects
 

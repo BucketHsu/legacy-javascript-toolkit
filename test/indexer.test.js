@@ -64,9 +64,9 @@ $.fn.myPlugin = function (options) {};
 class UserService {
   classMethod(id) { return id; }
 }
-const createButtonbar = () => {
-  const setApiUrl = (url) => url;
-  return { setApiUrl };
+const createWidget = () => {
+  const setEndpoint = (url) => url;
+  return { setEndpoint };
 };
 `;
 
@@ -82,8 +82,8 @@ for (const expected of [
   "window.globalFunction",
   "$.fn.myPlugin",
   "UserService.classMethod",
-  "createButtonbar",
-  "setApiUrl"
+  "createWidget",
+  "setEndpoint"
 ]) {
   assert.ok(byFullName.has(expected), `missing definition: ${expected}`);
 }

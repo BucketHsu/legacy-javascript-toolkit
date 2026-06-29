@@ -12,7 +12,9 @@ Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot 
 
 Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by dependency JARs such as gkweb `gk-frontend` can be navigated without a machine-specific source path.
 
-Version 0.0.3 can inspect and safely update an existing `jsconfig.json`. It previews the diff and only adds missing project paths or recommended settings without replacing existing `target`, `baseUrl`, `paths`, comments, or other user settings.
+Version 0.0.3 can inspect and safely update an existing `jsconfig.json`. It previews the diff and only adds missing project paths or recommended settings without replacing existing `target`, `paths`, comments, or other user settings.
+
+Version 0.0.6 discovers shared frontend assets managed by a Maven parent POM, improving navigation to functions such as `createButtonbar` and `setApiUrl` from `gk-frontend` dependency JARs. It also removes the legacy generated `"baseUrl": "."` setting deprecated by TypeScript 6.
 
 ## Suitable projects
 
@@ -56,6 +58,8 @@ The extension prompts only when a workspace has no `jsconfig.json` or `tsconfig.
 The manual command can open the existing file or create `jsconfig.generated.json`. After creation, the extension can restart the TypeScript server or reload the VS Code window.
 
 Existing JSONC files, including comments and trailing commas, can be checked and updated safely. The extension only appends missing include/exclude entries and missing compiler options. Invalid files are opened for correction and are never overwritten. Automatic update prompts remain disabled when a root `tsconfig.json` exists.
+
+New files no longer include the TypeScript 6 deprecated `baseUrl` option. Safe updates remove the legacy generated `"baseUrl": "."`; custom non-dot `baseUrl` values are preserved to avoid changing existing module resolution behavior.
 
 ## WebJar and classpath resource support
 

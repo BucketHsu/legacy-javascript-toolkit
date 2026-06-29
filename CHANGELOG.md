@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.6
+
+- Stop generating the TypeScript 6 deprecated `baseUrl` compiler option.
+- Remove legacy generated `"baseUrl": "."` during safe `jsconfig.json` updates.
+- Preserve custom non-dot `baseUrl` values to avoid changing module resolution behavior.
+- Index frontend artifacts inherited from Maven parent `dependencyManagement` when resolving referenced JavaScript resources.
+- Restore navigation for shared functions and returned object methods such as `createButtonbar` and `setApiUrl`.
+
 ## 0.0.5
 
 - Fix the Traditional Chinese and English README language switch links.

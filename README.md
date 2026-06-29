@@ -12,7 +12,9 @@ Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設�
 
 0.0.2 起支援 Maven parent、transitive dependency 與 Spring Boot dependency JAR 內的前端資產，可直接導覽 gkweb `gk-frontend` 提供的 `createView`、`createButtonbar` 等 function，不需要設定特定電腦的 gkweb 原始碼路徑。
 
-0.0.3 起可檢查並安全更新既有 `jsconfig.json`。更新前可查看差異，套用時只補入缺少的目錄與建議設定，不會改寫既有 `target`、`baseUrl`、`paths` 或其他人工設定。
+0.0.3 起可檢查並安全更新既有 `jsconfig.json`。更新前可查看差異，套用時只補入缺少的目錄與建議設定，不會改寫既有 `target`、`paths` 或其他人工設定。
+
+0.0.6 可從 Maven parent 的 `dependencyManagement` 找出共用前端資產，改善 `gk-frontend` 等 dependency JAR 中 `createButtonbar`、`setApiUrl` 的導覽，並移除舊版自動產生且已被 TypeScript 6 棄用的 `"baseUrl": "."`。
 
 ## 適合的專案類型
 
@@ -112,6 +114,8 @@ class Service { foo(value) {} }
 
 - 只追加缺少的 `include` 與 `exclude`。
 - 只補入不存在的 `compilerOptions`，不修改現有值。
+- 新建的設定不再加入 TypeScript 6 已棄用的 `baseUrl`；安全更新會移除舊版擴充套件產生的 `"baseUrl": "."`。
+- 若 `baseUrl` 是其他客製值，會予以保留，避免改變既有模組解析行為。
 - 保留註解、`paths`、自訂 target 與其他人工設定。
 - 寫入前重新讀取檔案，避免預覽期間的修改被舊內容覆蓋。
 - JSONC 格式或欄位型別錯誤時不寫入，只提示並開啟檔案。

@@ -64,6 +64,10 @@ $.fn.myPlugin = function (options) {};
 class UserService {
   classMethod(id) { return id; }
 }
+const createButtonbar = () => {
+  const setApiUrl = (url) => url;
+  return { setApiUrl };
+};
 `;
 
 const definitions = parseFunctionDefinitions(vscodeMock.Uri.file("/workspace/sample.js"), source, "project");
@@ -77,7 +81,9 @@ for (const expected of [
   "MyApp.util.assigned",
   "window.globalFunction",
   "$.fn.myPlugin",
-  "UserService.classMethod"
+  "UserService.classMethod",
+  "createButtonbar",
+  "setApiUrl"
 ]) {
   assert.ok(byFullName.has(expected), `missing definition: ${expected}`);
 }
@@ -110,6 +116,7 @@ const jsconfig = `{
   // Keep project-specific compiler settings.
   "compilerOptions": {
     "target": "ES2018",
+    "baseUrl": ".",
     "paths": { "@app/*": ["src/*"] },
   },
   "include": [
@@ -126,11 +133,14 @@ assert.equal(jsconfigAnalysis.changed, true);
 assert.match(jsconfigAnalysis.updatedText, /Keep project-specific compiler settings/);
 const updatedJsconfig = require("jsonc-parser").parse(jsconfigAnalysis.updatedText);
 assert.equal(updatedJsconfig.compilerOptions.target, "ES2018");
+assert.equal(updatedJsconfig.compilerOptions.baseUrl, undefined);
 assert.deepEqual(updatedJsconfig.compilerOptions.paths, { "@app/*": ["src/*"] });
 assert.equal(updatedJsconfig.compilerOptions.allowJs, true);
 assert.ok(updatedJsconfig.include.includes("module-a/src/main/resources/static/**/*.js"));
 assert.ok(updatedJsconfig.exclude.includes("target"));
 assert.equal(analyzeJsconfig("{ invalid", []).valid, false);
+const customBaseUrl = analyzeJsconfig('{"compilerOptions":{"baseUrl":"src"}}', []);
+assert.equal(require("jsonc-parser").parse(customBaseUrl.updatedText).compilerOptions.baseUrl, "src");
 
 async function testMavenResolution() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "legacy-js-toolkit-"));
@@ -163,7 +173,6 @@ async function testMavenResolution() {
     <project>
       <parent><groupId>com.example</groupId><artifactId>parent</artifactId><version>1</version><relativePath/></parent>
       <artifactId>app</artifactId>
-      <dependencies><dependency><groupId>com.example</groupId><artifactId>frontend</artifactId></dependency></dependencies>
     </project>
   `);
   await writeArtifact("frontend", "2.0", `

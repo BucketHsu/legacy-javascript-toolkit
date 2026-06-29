@@ -2,7 +2,7 @@
   "name": "legacy-javascript-toolkit",
   "displayName": "Legacy JavaScript Toolkit",
   "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, Maven resource indexing, and safe jsconfig.json assistance.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "BucketHsu",
   "license": "MIT",
   "repository": {

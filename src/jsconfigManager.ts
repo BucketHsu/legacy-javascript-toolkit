@@ -10,7 +10,6 @@ interface JsconfigContent {
     target: string;
     allowJs: boolean;
     checkJs: boolean;
-    baseUrl: string;
   };
   include: string[];
   exclude: string[];
@@ -193,8 +192,7 @@ export class JsconfigManager {
       compilerOptions: {
         target: "ES2020",
         allowJs: true,
-        checkJs: false,
-        baseUrl: "."
+        checkJs: false
       },
       include: detection.includes,
       exclude: ["node_modules", "target", "dist", "build", ".git"]
@@ -329,6 +327,9 @@ function summarizeChanges(analysis: JsconfigUpdateAnalysis): string {
   if (analysis.missingExcludes.length > 0) parts.push(`${analysis.missingExcludes.length} 個 exclude`);
   const optionCount = Object.keys(analysis.missingCompilerOptions).length;
   if (optionCount > 0) parts.push(`${optionCount} 個 compilerOptions`);
+  if (analysis.removedCompilerOptions.length > 0) {
+    parts.push(`移除 ${analysis.removedCompilerOptions.length} 個已棄用 compilerOptions`);
+  }
   return parts.join("、") || "無";
 }
 

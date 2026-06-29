@@ -29,6 +29,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerDefinitionProvider(LANGUAGE_SELECTOR, new NavigationProvider(indexer)),
     vscode.languages.registerHoverProvider(LANGUAGE_SELECTOR, new JSDocHoverProvider(indexer)),
     vscode.commands.registerCommand("legacyJavaScriptToolkit.createJsconfig", () => jsconfigManager.createFromCommand()),
+    vscode.commands.registerCommand("legacyJavaScriptToolkit.checkJsconfig", () => jsconfigManager.checkFromCommand()),
+    vscode.commands.registerCommand("legacyJavaScriptToolkit.updateJsconfig", () => jsconfigManager.updateFromCommand()),
     vscode.commands.registerCommand("legacyJavaScriptToolkit.resetJsconfigPrompt", () => jsconfigManager.resetPrompt()),
     vscode.commands.registerCommand("legacyJavaScriptToolkit.rebuildIndex", async () => {
       const status = await vscode.window.withProgress(
@@ -59,7 +61,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const promptTimer = setTimeout(() => {
-    void jsconfigManager.promptForEligibleProjects().catch((error) => {
+    void (async () => {
+      await jsconfigManager.promptForEligibleProjects();
+      await jsconfigManager.promptForUpdates();
+    })().catch((error) => {
       output.appendLine(`警告：jsconfig.json 偵測失敗（${messageOf(error)}）`);
     });
   }, 800);

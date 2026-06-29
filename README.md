@@ -4,7 +4,15 @@
 
 Legacy JavaScript Toolkit 是為 Java / Spring Boot / 傳統 Java Web 專案設計的 VS Code 擴充套件。它補強原生 JavaScript 的 inline HTML 語法高亮、function 定義導覽、JSDoc Hover、JSP / HTML `script src` 關聯、Maven WebJar 索引，以及 `jsconfig.json` 建立輔助。
 
+## 功能展示
+
+![Legacy JavaScript Toolkit 功能展示一](images/legacy-javascript-toolkit%20-demo1.gif)
+
+![Legacy JavaScript Toolkit 功能展示二](images/legacy-javascript-toolkit%20-demo2.gif)
+
 0.0.2 起支援 Maven parent、transitive dependency 與 Spring Boot dependency JAR 內的前端資產，可直接導覽 gkweb `gk-frontend` 提供的 `createView`、`createButtonbar` 等 function，不需要設定特定電腦的 gkweb 原始碼路徑。
+
+0.0.3 起可檢查並安全更新既有 `jsconfig.json`。更新前可查看差異，套用時只補入缺少的目錄與建議設定，不會改寫既有 `target`、`baseUrl`、`paths` 或其他人工設定。
 
 ## 適合的專案類型
 
@@ -96,6 +104,19 @@ class Service { foo(value) {} }
 
 只有選擇「建立」才會寫入檔案，`include` 只納入實際存在的目錄，也支援 Maven 多模組路徑。既有 `jsconfig.json` 不會被覆蓋；手動執行建立指令時，可以開啟既有檔案或另建 `jsconfig.generated.json`。
 
+### 檢查與安全更新
+
+若既有 `jsconfig.json` 缺少新加入的 Maven 模組、JavaScript 目錄、建議 exclude 或必要 compilerOptions，擴充套件會詢問是否安全更新。支援含註解與尾端逗號的 JSONC 格式。
+
+安全更新遵守以下規則：
+
+- 只追加缺少的 `include` 與 `exclude`。
+- 只補入不存在的 `compilerOptions`，不修改現有值。
+- 保留註解、`paths`、自訂 target 與其他人工設定。
+- 寫入前重新讀取檔案，避免預覽期間的修改被舊內容覆蓋。
+- JSONC 格式或欄位型別錯誤時不寫入，只提示並開啟檔案。
+- workspace 已有 `tsconfig.json` 時不主動提示更新；仍可手動執行檢查指令。
+
 ## WebJar 支援
 
 索引器依序嘗試：
@@ -123,6 +144,8 @@ Maven local repository 依序取自：
 | 指令 | 用途 |
 | --- | --- |
 | `Legacy JavaScript Toolkit: Create jsconfig.json` | 建立適合目前 Java Web 專案的設定檔 |
+| `Legacy JavaScript Toolkit: Check jsconfig.json` | 檢查既有設定並提供差異預覽 |
+| `Legacy JavaScript Toolkit: Update jsconfig.json Safely` | 確認後只補入缺少的安全設定 |
 | `Legacy JavaScript Toolkit: Reset jsconfig.json Prompt` | 清除「不要再提醒」狀態 |
 | `Legacy JavaScript Toolkit: Rebuild JavaScript Index` | 重新掃描專案與 WebJar |
 | `Legacy JavaScript Toolkit: Show JavaScript Index Status` | 顯示 workspace、檔案、function、WebJar、時間與 jsconfig 狀態 |
@@ -136,6 +159,7 @@ Maven local repository 依序取自：
 | `legacyJavaScriptToolkit.enableInlineHtmlHighlight` | `true` | Inline HTML 高亮偏好；TextMate contribution 由 VS Code 載入，變更後需重新載入視窗 |
 | `legacyJavaScriptToolkit.enableNavigation` | `true` | 啟用 function Definition 與 Hover Provider |
 | `legacyJavaScriptToolkit.promptCreateJsconfig` | `true` | 符合條件時詢問建立 jsconfig |
+| `legacyJavaScriptToolkit.promptUpdateJsconfig` | `true` | 既有 jsconfig 可安全補齊時顯示提醒 |
 | `legacyJavaScriptToolkit.includeWebjars` | `true` | 納入 Maven WebJar |
 | `legacyJavaScriptToolkit.mavenRepository` | 空字串 | 選用的 Maven local repository；留空時自動依 Maven 設定與使用者目錄判斷 |
 | `legacyJavaScriptToolkit.maxFilesToIndex` | `3000` | 索引檔案上限 |
@@ -148,7 +172,7 @@ TextMate grammar contribution 目前無法由 extension runtime 動態卸載；�
 從 VSIX 安裝：
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.2.vsix
+code --install-extension legacy-javascript-toolkit-0.0.4.vsix
 ```
 
 也可以在 VS Code 的 Extensions 檢視中，使用 `Install from VSIX...`。
@@ -174,7 +198,7 @@ npm run watch
 npm run package
 ```
 
-成功後會在專案根目錄產生 `legacy-javascript-toolkit-0.0.2.vsix`。
+成功後會在專案根目錄產生 `legacy-javascript-toolkit-0.0.4.vsix`。
 
 ## 已知限制
 

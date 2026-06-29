@@ -41,6 +41,7 @@ Module._load = function (request, parent, isMain) {
 };
 
 const { parseFunctionDefinitions } = require("../out/javascriptIndexer");
+const { analyzeJsconfig } = require("../out/jsconfigUpdater");
 const { extractScriptSources } = require("../out/scriptReferenceScanner");
 const { getDependencyResourcePath, parseWebjarDependencies } = require("../out/webjarScanner");
 const { MavenDependencyResolver } = require("../out/mavenDependencyResolver");
@@ -104,6 +105,32 @@ const dependencies = parseWebjarDependencies(`
   </project>
 `);
 assert.deepEqual(dependencies, [{ groupId: "org.webjars", artifactId: "jquery", version: "3.7.1" }]);
+
+const jsconfig = `{
+  // Keep project-specific compiler settings.
+  "compilerOptions": {
+    "target": "ES2018",
+    "paths": { "@app/*": ["src/*"] },
+  },
+  "include": [
+    "src/main/resources/static/**/*.js",
+  ],
+  "exclude": ["node_modules"],
+}`;
+const jsconfigAnalysis = analyzeJsconfig(jsconfig, [
+  "src/main/resources/static/**/*.js",
+  "module-a/src/main/resources/static/**/*.js"
+]);
+assert.equal(jsconfigAnalysis.valid, true);
+assert.equal(jsconfigAnalysis.changed, true);
+assert.match(jsconfigAnalysis.updatedText, /Keep project-specific compiler settings/);
+const updatedJsconfig = require("jsonc-parser").parse(jsconfigAnalysis.updatedText);
+assert.equal(updatedJsconfig.compilerOptions.target, "ES2018");
+assert.deepEqual(updatedJsconfig.compilerOptions.paths, { "@app/*": ["src/*"] });
+assert.equal(updatedJsconfig.compilerOptions.allowJs, true);
+assert.ok(updatedJsconfig.include.includes("module-a/src/main/resources/static/**/*.js"));
+assert.ok(updatedJsconfig.exclude.includes("target"));
+assert.equal(analyzeJsconfig("{ invalid", []).valid, false);
 
 async function testMavenResolution() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "legacy-js-toolkit-"));

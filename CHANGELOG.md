@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.4
+
+- Add two animated feature demos to the Traditional Chinese and English README files.
+- Add repository metadata so Marketplace README images resolve correctly.
+
+## 0.0.3
+
+- Add automatic checks for safe jsconfig.json updates in Java Web workspaces.
+- Add Check jsconfig.json and Update jsconfig.json Safely commands.
+- Add a diff preview before applying jsconfig.json changes.
+- Preserve existing compiler options, paths, comments, trailing commas, and custom settings.
+- Only append missing include/exclude entries and missing recommended compiler options.
+- Re-read jsconfig.json before writing to avoid overwriting edits made during preview.
+- Refuse to update invalid JSONC or unsupported field types.
+- Add a separate prompt setting and reset state for jsconfig.json updates.
+
 ## 0.0.2
 
 - Change the Marketplace publisher to BucketHsu.

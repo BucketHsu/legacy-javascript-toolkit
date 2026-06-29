@@ -4,7 +4,15 @@ Traditional Chinese: `README.md` | English: `README.en.md`
 
 Legacy JavaScript Toolkit improves native JavaScript development in Spring Boot and traditional Java Web projects. It provides inline HTML highlighting, function navigation, JSDoc hover, JSP/HTML script reference scanning, Maven WebJar indexing, and `jsconfig.json` assistance.
 
+## Feature demos
+
+![Legacy JavaScript Toolkit feature demo 1](images/legacy-javascript-toolkit%20-demo1.gif)
+
+![Legacy JavaScript Toolkit feature demo 2](images/legacy-javascript-toolkit%20-demo2.gif)
+
 Version 0.0.2 adds Maven parent and transitive dependency resolution plus Spring Boot classpath resource indexing. Functions supplied by dependency JARs such as gkweb `gk-frontend` can be navigated without a machine-specific source path.
+
+Version 0.0.3 can inspect and safely update an existing `jsconfig.json`. It previews the diff and only adds missing project paths or recommended settings without replacing existing `target`, `baseUrl`, `paths`, comments, or other user settings.
 
 ## Suitable projects
 
@@ -47,6 +55,8 @@ The extension prompts only when a workspace has no `jsconfig.json` or `tsconfig.
 
 The manual command can open the existing file or create `jsconfig.generated.json`. After creation, the extension can restart the TypeScript server or reload the VS Code window.
 
+Existing JSONC files, including comments and trailing commas, can be checked and updated safely. The extension only appends missing include/exclude entries and missing compiler options. Invalid files are opened for correction and are never overwritten. Automatic update prompts remain disabled when a root `tsconfig.json` exists.
+
 ## WebJar and classpath resource support
 
 The scanner follows workspace POMs, parent POMs, dependency management, imported BOMs, and relevant transitive dependencies. It indexes standard WebJars and Spring Boot dependency resources under `static`, `public`, `resources`, and `META-INF/resources`.
@@ -58,6 +68,8 @@ This is best-effort support, not a Java classpath. Minified libraries are diffic
 ## Commands
 
 - `Legacy JavaScript Toolkit: Create jsconfig.json`
+- `Legacy JavaScript Toolkit: Check jsconfig.json`
+- `Legacy JavaScript Toolkit: Update jsconfig.json Safely`
 - `Legacy JavaScript Toolkit: Reset jsconfig.json Prompt`
 - `Legacy JavaScript Toolkit: Rebuild JavaScript Index`
 - `Legacy JavaScript Toolkit: Show JavaScript Index Status`
@@ -69,6 +81,7 @@ Diagnostics are written to the `Legacy JavaScript Toolkit` output channel.
 - `legacyJavaScriptToolkit.enableInlineHtmlHighlight` (default: `true`)
 - `legacyJavaScriptToolkit.enableNavigation` (default: `true`)
 - `legacyJavaScriptToolkit.promptCreateJsconfig` (default: `true`)
+- `legacyJavaScriptToolkit.promptUpdateJsconfig` (default: `true`)
 - `legacyJavaScriptToolkit.includeWebjars` (default: `true`)
 - `legacyJavaScriptToolkit.mavenRepository` (default: empty; auto-detected)
 - `legacyJavaScriptToolkit.maxFilesToIndex` (default: `3000`)
@@ -79,7 +92,7 @@ VS Code loads TextMate contributions statically, so the grammar cannot currently
 ## Installation
 
 ```bash
-code --install-extension legacy-javascript-toolkit-0.0.2.vsix
+code --install-extension legacy-javascript-toolkit-0.0.4.vsix
 ```
 
 You can also use `Install from VSIX...` in the Extensions view.

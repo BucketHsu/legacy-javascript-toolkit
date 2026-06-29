@@ -1,10 +1,14 @@
 {
   "name": "legacy-javascript-toolkit",
   "displayName": "Legacy JavaScript Toolkit",
-  "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, WebJar indexing, and jsconfig.json assistance.",
-  "version": "0.0.2",
+  "description": "Improve legacy JavaScript development with inline HTML highlighting, function navigation, JSDoc hover, Maven resource indexing, and safe jsconfig.json assistance.",
+  "version": "0.0.4",
   "publisher": "BucketHsu",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BucketHsu/legacy-javascript-toolkit.git"
+  },
   "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.90.0"
@@ -31,6 +35,8 @@
     "onLanguage:html",
     "onLanguage:jsp",
     "onCommand:legacyJavaScriptToolkit.createJsconfig",
+    "onCommand:legacyJavaScriptToolkit.checkJsconfig",
+    "onCommand:legacyJavaScriptToolkit.updateJsconfig",
     "onCommand:legacyJavaScriptToolkit.resetJsconfigPrompt",
     "onCommand:legacyJavaScriptToolkit.rebuildIndex",
     "onCommand:legacyJavaScriptToolkit.showIndexStatus"
@@ -45,6 +51,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "jsonc-parser": "^3.3.1",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
@@ -58,6 +65,14 @@
       {
         "command": "legacyJavaScriptToolkit.createJsconfig",
         "title": "Legacy JavaScript Toolkit: Create jsconfig.json"
+      },
+      {
+        "command": "legacyJavaScriptToolkit.checkJsconfig",
+        "title": "Legacy JavaScript Toolkit: Check jsconfig.json"
+      },
+      {
+        "command": "legacyJavaScriptToolkit.updateJsconfig",
+        "title": "Legacy JavaScript Toolkit: Update jsconfig.json Safely"
       },
       {
         "command": "legacyJavaScriptToolkit.resetJsconfigPrompt",
@@ -104,6 +119,11 @@
           "type": "boolean",
           "default": true,
           "description": "Prompt to create jsconfig.json when opening a Java Web project without one."
+        },
+        "legacyJavaScriptToolkit.promptUpdateJsconfig": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prompt when an existing jsconfig.json can safely add missing JavaScript directories or recommended settings."
         },
         "legacyJavaScriptToolkit.includeWebjars": {
           "type": "boolean",

@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import * as ts from "typescript";
+import * as ts from "typescript-compiler-api";
 import * as vscode from "vscode";
 import { ScriptReferenceScanner } from "./scriptReferenceScanner";
 import { WebjarFile, WebjarScanner } from "./webjarScanner";

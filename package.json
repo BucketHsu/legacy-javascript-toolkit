@@ -2,7 +2,7 @@
   "name": "legacy-javascript-toolkit",
   "displayName": "Legacy JavaScript Toolkit",
   "description": "Improve legacy JavaScript development with inline HTML highlighting, function and CSS class navigation, Maven resource indexing, and safe jsconfig.json assistance.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "BucketHsu",
   "license": "MIT",
   "repository": {
@@ -53,13 +53,14 @@
   "dependencies": {
     "adm-zip": "^0.5.16",
     "jsonc-parser": "^3.3.1",
-    "typescript": "^5.8.3"
+    "typescript-compiler-api": "npm:typescript@^6.0.0"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/node": "^22.15.3",
     "@types/vscode": "^1.90.0",
-    "@vscode/vsce": "^3.3.2"
+    "@vscode/vsce": "^3.3.2",
+    "typescript": "^7.0.2"
   },
   "contributes": {
     "commands": [
